@@ -1,6 +1,6 @@
 # Gradient Tape Experiments
 
-Trying out the Tensorflow 2.0 Gradient tape
+Trying out the Tensorflow 2.0 Gradient tape during the pandemic
 
 ## Contents
 
