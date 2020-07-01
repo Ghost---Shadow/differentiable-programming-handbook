@@ -17,3 +17,7 @@ Optimization: SGD-like
 
 Encoding:
 Optimization: SGD-like
+
+## Differentiable Subset Sum
+
+* [SaniyahBokhari](https://github.com/SaniyahBokhari/SubsetSumProblem)

@@ -6,5 +6,6 @@ Differentiable implementation of common computer science algorithms.
 
 ## Contents
 
-* [Bubble sort](bubble-sort.ipynb) - Differentiable implementation of bubble sort with configurable (learnable) comparator function
+* [Bubble Sort](bubble-sort.ipynb) - Differentiable implementation of bubble sort with configurable (learnable) comparator function
 * [Boolean Satisfiability](boolean-satisfiability.ipynb) - Solving CNF boolean SAT with gradient descent
+* [Subset Sum](subset-sum.ipynb) - Solving Subset Sum with gradient descent
