@@ -21,3 +21,7 @@ Optimization: SGD-like
 ## Differentiable Subset Sum
 
 * [SaniyahBokhari](https://github.com/SaniyahBokhari/SubsetSumProblem)
+
+## Transformer
+
+* [kpot/keras-transformer](https://github.com/kpot/keras-transformer)
