@@ -10,3 +10,4 @@ Differentiable implementation of common computer science algorithms.
 * [Boolean Satisfiability](boolean-satisfiability.ipynb) - Solving CNF boolean SAT with gradient descent
 * [Subset Sum](subset-sum.ipynb) - Solving Subset Sum with gradient descent
 * [Higher Order Functions](higher-order-functions.ipynb) - Demonstrating gradient descent through higher order functions
+* [Differentiable indexed arrays](differentiable-indexed-arrays.ipynb) - Listing strategies to implement array indexing with gradients defined for both input and index.
