@@ -25,3 +25,10 @@ Optimization: SGD-like
 ## Transformer
 
 * [kpot/keras-transformer](https://github.com/kpot/keras-transformer)
+
+## Differentiable Theorem proving
+
+* [End-to-End Differentiable Proving](https://papers.nips.cc/paper/6969-end-to-end-differentiable-proving.pdf)
+* [Inferring Algorithmic Patterns with Stack-Augmented Recurrent Nets](https://papers.nips.cc/paper/5857-inferring-algorithmic-patterns-with-stack-augmented-recurrent-nets.pdf)
+* [Learning to Transduce with Unbounded Memory](http://papers.nips.cc/paper/5648-learning-to-transduce-with-unbounded-memory.pdf)
+* [Learning to learn by gradient descent by gradient descent](http://papers.nips.cc/paper/6461-learning-to-learn-by-gradient-descent-by-gradient-descent.pdf)
