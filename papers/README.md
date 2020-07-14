@@ -5,6 +5,7 @@
 * [Smooth Min](https://www.iquilezles.org/www/articles/smin/smin.htm)
 * [Bias function](https://youtu.be/lctXaT9pxA0?t=454)
 * [Deep Ensembles: A Loss Landscape Perspective](https://arxiv.org/abs/1912.02757)
+* [Javascript SVG renderer](https://github.com/canvg/canvg)
 
 ## Differentiable Sorting
 
