@@ -1,5 +1,11 @@
 # Literature survey
 
+## Other interesting
+
+* [Smooth Min](https://www.iquilezles.org/www/articles/smin/smin.htm)
+* [Bias function](https://youtu.be/lctXaT9pxA0?t=454)
+* [Deep Ensembles: A Loss Landscape Perspective](https://arxiv.org/abs/1912.02757)
+
 ## Differentiable Sorting
 
 * [Differentiable parallel approximate sorting networks](https://github.com/johnhw/differentiable_sorting)

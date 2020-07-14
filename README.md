@@ -21,3 +21,4 @@ All algorithms in this repository follow these rules
 * [Subset Sum](subset-sum.ipynb) - Solving Subset Sum with gradient descent
 * [Higher Order Functions](higher-order-functions.ipynb) - Demonstrating gradient descent through higher order functions
 * [Differentiable indexed arrays](differentiable-indexed-arrays.ipynb) - Listing strategies to implement array indexing with gradients defined for both input and index.
+* [Stacks](stacks.ipynb) - A basic implementation of differentiable stacks
