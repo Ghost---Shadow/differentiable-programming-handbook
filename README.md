@@ -6,7 +6,7 @@ Differentiable implementation of common computer science algorithms.
 
 ## Motivation
 
-These algorithms can be thought as overengineered loss functions. They are meant to be used in conjuction with deep learning networks. However, unlike loss function, they dont need to be attached to the end of the network. As demonstrated in the [Bubble Sort](bubble-sort.ipynb) example, it can also be interleaved with the graph of the network.
+These algorithms can be thought as overengineered loss functions. They are meant to be used in conjuction with deep learning networks. However, unlike loss function, they dont need to be attached to the end of the network. As demonstrated in the [Bubble Sort](notebooks/bubble-sort.ipynb) example, it can also be interleaved with the graph of the network.
 
 All algorithms in this repository follow these rules
 
