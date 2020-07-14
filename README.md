@@ -16,9 +16,9 @@ All algorithms in this repository follow these rules
 
 ## Contents
 
-* [Bubble Sort](bubble-sort.ipynb) - Differentiable implementation of bubble sort with configurable (learnable) comparator function
-* [Boolean Satisfiability](boolean-satisfiability.ipynb) - Solving CNF boolean SAT with gradient descent
-* [Subset Sum](subset-sum.ipynb) - Solving Subset Sum with gradient descent
-* [Higher Order Functions](higher-order-functions.ipynb) - Demonstrating gradient descent through higher order functions
-* [Differentiable indexed arrays](differentiable-indexed-arrays.ipynb) - Listing strategies to implement array indexing with gradients defined for both input and index.
-* [Stacks](stacks.ipynb) - A basic implementation of differentiable stacks
+* [Bubble Sort](notebooks/bubble-sort.ipynb) - Differentiable implementation of bubble sort with configurable (learnable) comparator function
+* [Boolean Satisfiability](notebooks/boolean-satisfiability.ipynb) - Solving CNF boolean SAT with gradient descent
+* [Subset Sum](notebooks/subset-sum.ipynb) - Solving Subset Sum with gradient descent
+* [Higher Order Functions](notebooks/higher-order-functions.ipynb) - Demonstrating gradient descent through higher order functions
+* [Differentiable indexed arrays](notebooks/differentiable-indexed-arrays.ipynb) - Listing strategies to implement array indexing with gradients defined for both input and index.
+* [Stacks](notebooks/stacks.ipynb) - A basic implementation of differentiable stacks
