@@ -6,6 +6,8 @@
 * [Bias function](https://youtu.be/lctXaT9pxA0?t=454)
 * [Deep Ensembles: A Loss Landscape Perspective](https://arxiv.org/abs/1912.02757)
 * [Javascript SVG renderer](https://github.com/canvg/canvg)
+* [A Differentiable Programming System to Bridge Machine Learning and Scientific Computing](https://arxiv.org/abs/1907.07587)
+* [Neural Turing Machines](https://arxiv.org/abs/1410.5401)
 
 ## Differentiable Sorting
 
