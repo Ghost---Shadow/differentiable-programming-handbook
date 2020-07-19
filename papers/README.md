@@ -9,6 +9,11 @@
 * [A Differentiable Programming System to Bridge Machine Learning and Scientific Computing](https://arxiv.org/abs/1907.07587)
 * [Neural Turing Machines](https://arxiv.org/abs/1410.5401)
 
+## SVG
+
+* [svgo](https://github.com/svg/svgo)
+* [svgr](https://github.com/gregberge/svgr)
+
 ## Differentiable Sorting
 
 * [Differentiable parallel approximate sorting networks](https://github.com/johnhw/differentiable_sorting)
