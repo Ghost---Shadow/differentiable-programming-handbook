@@ -1,4 +1,4 @@
-# Differentiable Programming Examples
+# Differentiable Programming Handbook
 
 Differentiable implementation of common computer science algorithms.
 
@@ -22,3 +22,4 @@ All algorithms in this repository follow these rules
 * [Higher Order Functions](notebooks/higher-order-functions.ipynb) - Demonstrating gradient descent through higher order functions
 * [Differentiable indexed arrays](notebooks/differentiable-indexed-arrays.ipynb) - Listing strategies to implement array indexing with gradients defined for both input and index.
 * [Stacks](notebooks/stacks.ipynb) - A basic implementation of differentiable stacks
+* [Differentiable Indirection](notebooks/differentiable-indirection.ipynb) - Implementation of circular linked lists with differentiable indexing
