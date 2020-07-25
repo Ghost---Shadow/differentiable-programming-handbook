@@ -106,3 +106,29 @@ def residual_lookup(arr, index):
     result = arr[i]
     
     return result, residue
+
+
+@tf.function
+def tensor_lookup_2d(arr, x_index, y_index):
+    mask = tf.tensordot(x_index, y_index, axes=0)
+    mask = tf.expand_dims(mask, -1)
+    
+    masked_arr = mask * arr
+    
+    element = tf.math.reduce_max(masked_arr, axis=[0,1])
+    
+    return element
+
+
+@tf.function
+def tensor_write_2d(arr, element, x_index, y_index):
+    arr_shape = tf.shape(arr)
+    mask = tf.tensordot(x_index, y_index, axes=0)
+    mask = tf.expand_dims(mask, -1)
+    
+    element = tf.reshape(element,[1,1,-1])
+    element = tf.tile(element, [arr_shape[0], arr_shape[1], 1])
+    
+    result = (1.0 - mask) * arr + mask * element
+    
+    return result
