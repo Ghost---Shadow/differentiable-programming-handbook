@@ -17,6 +17,20 @@ def assign_index(arr, index, element):
 
 
 @tf.function
+def assign_index_vectored(arr, index, element):
+    arr_shape = tf.shape(arr)
+    
+    pos_mask = tf.transpose(tf.expand_dims(index, 0))
+    neg_mask = 1 - pos_mask
+    
+    tiled_element = tf.reshape(tf.tile(element, [arr_shape[0]]), arr_shape)
+
+    arr = arr * neg_mask + tiled_element * pos_mask
+    
+    return arr
+
+
+@tf.function
 def naive_lookup(arr, index):
     index = tf.round(index)
     index = tf.cast(index, tf.int32)
