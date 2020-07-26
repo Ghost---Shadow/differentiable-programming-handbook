@@ -124,13 +124,18 @@ def residual_lookup(arr, index):
 
 @tf.function
 def tensor_lookup_2d(arr, x_index, y_index):
+    # Calculate outer product
     mask = tf.tensordot(x_index, y_index, axes=0)
-    mask = tf.expand_dims(mask, -1)
     
+    # Broadcast the mask to match dimensions with arr
+    kernel_shape = tf.shape(arr)[:2]
+    ones = tf.ones(tf.rank(arr) - 2, dtype=tf.int32)
+    new_shape = tf.concat((kernel_shape, ones),axis=0)
+    mask = tf.reshape(mask, new_shape)
+    
+    # Multiply the mask
     masked_arr = mask * arr
-    
     element = tf.math.reduce_max(masked_arr, axis=[0,1])
-    
     return element
 
 
@@ -138,7 +143,12 @@ def tensor_lookup_2d(arr, x_index, y_index):
 def tensor_write_2d(arr, element, x_index, y_index):
     arr_shape = tf.shape(arr)
     mask = tf.tensordot(x_index, y_index, axes=0)
-    mask = tf.expand_dims(mask, -1)
+    
+    # Broadcast the mask to match dimensions with arr
+    kernel_shape = arr_shape[:2]
+    ones = tf.ones(tf.rank(arr) - 2, dtype=tf.int32)
+    new_shape = tf.concat((kernel_shape, ones),axis=0)
+    mask = tf.reshape(mask, new_shape)
     
     element = tf.reshape(element,[1,1,-1])
     element = tf.tile(element, [arr_shape[0], arr_shape[1], 1])
