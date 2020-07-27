@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from library.array_ops import assign_index_vectored, superposition_lookup_vectored
+from .array_ops import assign_index_vectored, superposition_lookup_vectored
 
 
 @tf.function
