@@ -123,18 +123,39 @@ def residual_lookup(arr, index):
 
 
 @tf.function
+def match_shapes(x, y):
+    # Find which one needs to be broadcasted
+    low, high = (y, x) if tf.rank(x) > tf.rank(y) else (x, y)
+    l_rank, l_shape = tf.rank(low), tf.shape(low)
+    h_rank, h_shape = tf.rank(high), tf.shape(high)
+
+    # Find the difference in ranks
+    common_shape = h_shape[:l_rank]
+    tf.debugging.assert_equal(common_shape, l_shape, 'No common shape to broadcast')
+    padding = tf.ones(h_rank - l_rank, dtype=tf.int32)
+
+    # Pad the difference with ones and reshape
+    new_shape = tf.concat((common_shape, padding), axis=0)
+    low = tf.reshape(low, new_shape)
+
+    return high, low
+
+
+@tf.function
+def broadcast_multiply(x, y):
+    x, y = match_shapes(x, y)
+    return x * y
+
+
+@tf.function
 def tensor_lookup_2d(arr, x_index, y_index):
     # Calculate outer product
     mask = tf.tensordot(x_index, y_index, axes=0)
 
     # Broadcast the mask to match dimensions with arr
-    kernel_shape = tf.shape(arr)[:2]
-    ones = tf.ones(tf.rank(arr) - 2, dtype=tf.int32)
-    new_shape = tf.concat((kernel_shape, ones), axis=0)
-    mask = tf.reshape(mask, new_shape)
+    masked_arr = broadcast_multiply(mask, arr)
 
-    # Multiply the mask
-    masked_arr = mask * arr
+    # Reduce max to extract the cell
     element = tf.math.reduce_max(masked_arr, axis=[0, 1])
     return element
 
@@ -145,10 +166,7 @@ def tensor_write_2d(arr, element, x_index, y_index):
     mask = tf.tensordot(x_index, y_index, axes=0)
 
     # Broadcast the mask to match dimensions with arr
-    kernel_shape = arr_shape[:2]
-    ones = tf.ones(tf.rank(arr) - 2, dtype=tf.int32)
-    new_shape = tf.concat((kernel_shape, ones), axis=0)
-    mask = tf.reshape(mask, new_shape)
+    _, mask = match_shapes(arr, mask)
 
     element = tf.reshape(element, [1, 1, -1])
     element = tf.tile(element, [arr_shape[0], arr_shape[1], 1])
