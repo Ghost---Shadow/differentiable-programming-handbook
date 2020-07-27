@@ -43,3 +43,11 @@ def stack_pop(state):
     element = superposition_lookup_vectored(buffer, index)
     state = (buffer, index)
     return state, element
+
+
+@tf.function
+def stack_peek(stack):
+    buffer, index = stack
+    index = tf.roll(index, shift=-1, axis=0)
+    element = superposition_lookup_vectored(buffer, index)
+    return element
