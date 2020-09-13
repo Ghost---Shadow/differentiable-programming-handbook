@@ -76,27 +76,32 @@ def asymmetrical_vectored_lookup(v, k):
     k_shape = tf.shape(k)
 
     # Pick the value at the most likely index, non-differentiably
-    idx = tf.argmax(k)
-    forward_result = v[idx]
+    b_idx = tf.argmax(k, axis=-1)
+    idx_len = tf.shape(b_idx)[0]
+    a_idx = tf.range(idx_len, dtype=tf.int64)
+    idx = tf.stack([a_idx, b_idx], axis=1)
+    forward_result = tf.gather_nd(v, idx)
 
     def grad(upstream_grads):
         # Estimate the target scalar which we want to look up
         target = forward_result - upstream_grads
+        target = tf.expand_dims(target, -1)
 
         # Find the index of element in the array which is closest to target
         diff_vector = tf.math.squared_difference(v, target)
-        d_idx = tf.argmin(diff_vector)
+        d_idx = tf.argmin(diff_vector, axis=-1)
 
         # Create a vector which is 1 everywhere except the idx
         # of the target, where it is -1
         ones = tf.ones(k_shape)
-        eyes = tf.one_hot([d_idx], k_shape[0])[0]
-        k_grad = 2 * eyes - ones
+        eyes = tf.one_hot([d_idx], k_shape[-1])[0]
+        k_grad = -(2 * eyes - ones)
 
         # d/dv (v . k) = k
         v_grad = k
 
-        return upstream_grads * v_grad, upstream_grads * k_grad
+        upstream_grads = tf.expand_dims(upstream_grads, -1)
+        return upstream_grads * v_grad, tf.math.abs(upstream_grads) * k_grad
 
     return forward_result, grad
 
