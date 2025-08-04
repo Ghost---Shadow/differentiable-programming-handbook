@@ -28,7 +28,9 @@ class TestLoss(TestCase):
         # Bistable loss gradient: d/dx[x^2(x-1)^2] = 2x(x-1)^2 + x^2*2(x-1) = 2x(x-1)(2x-1)
         # For x=[0, 0.5, 1]: gradients are [0, 0, 0] (critical points)
         expected_grad = torch.tensor([0.0, 0.0, 0.0], device=self.device)
-        npt.assert_almost_equal(x.grad.detach().cpu().numpy(), expected_grad.cpu().numpy(), decimal=4)
+        npt.assert_almost_equal(
+            x.grad.detach().cpu().numpy(), expected_grad.cpu().numpy(), decimal=4
+        )
 
     def test_permute_matrix_loss(self):
         # Test with identity matrix (should have low loss)
@@ -53,7 +55,9 @@ class TestLoss(TestCase):
         loss.backward()
         # With cycle weight, gradients should still be reasonable
         self.assertEqual(P.grad.shape, (2, 2))
-        self.assertTrue(torch.all(torch.abs(P.grad) < 5.0))  # Should be reasonable gradients
+        self.assertTrue(
+            torch.all(torch.abs(P.grad) < 5.0)
+        )  # Should be reasonable gradients
 
     def test_gpu_compatibility(self):
         if not torch.cuda.is_available():
@@ -69,7 +73,9 @@ class TestLoss(TestCase):
         self.assertTrue(x.grad.is_cuda)
         # Verify GPU gradients match CPU test
         expected_grad = torch.tensor([0.0, 0.0, 0.0], device=device)
-        npt.assert_almost_equal(x.grad.detach().cpu().numpy(), expected_grad.cpu().numpy(), decimal=4)
+        npt.assert_almost_equal(
+            x.grad.detach().cpu().numpy(), expected_grad.cpu().numpy(), decimal=4
+        )
 
 
 if __name__ == "__main__":

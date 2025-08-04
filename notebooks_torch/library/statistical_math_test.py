@@ -28,7 +28,9 @@ class TestStatisticalMath(TestCase):
         # Probability distribution gradients should sum to zero (normalization constraint)
         self.assertEqual(v.grad.shape, v.shape)
         row_grad_sums = torch.sum(v.grad, dim=-1)
-        npt.assert_almost_equal(row_grad_sums.detach().cpu().numpy(), [0.0, 0.0], decimal=5)
+        npt.assert_almost_equal(
+            row_grad_sums.detach().cpu().numpy(), [0.0, 0.0], decimal=5
+        )
 
     def test_cross_entropy(self):
         x = torch.tensor(

@@ -24,8 +24,12 @@ class TestVectorMath(TestCase):
         result.sum().backward()
         # Shift operation should propagate gradients through permutation matrix
         self.assertEqual(vec.grad.shape, vec.shape)
-        expected_grad = torch.tensor([1.0, 1.0, 1.0], device=self.device)  # All positions contribute
-        npt.assert_almost_equal(vec.grad.detach().cpu().numpy(), expected_grad.cpu().numpy())
+        expected_grad = torch.tensor(
+            [1.0, 1.0, 1.0], device=self.device
+        )  # All positions contribute
+        npt.assert_almost_equal(
+            vec.grad.detach().cpu().numpy(), expected_grad.cpu().numpy()
+        )
 
     def test_shift_left_one_hot_different_shift(self):
         vec = torch.tensor([1.0, 0.0, 0.0], device=self.device)
@@ -54,8 +58,12 @@ class TestVectorMath(TestCase):
         # Dot product gradients: dx = y, dy = x
         expected_x_grad = y.clone().detach()
         expected_y_grad = x.clone().detach()
-        npt.assert_almost_equal(x.grad.detach().cpu().numpy(), expected_x_grad.cpu().numpy())
-        npt.assert_almost_equal(y.grad.detach().cpu().numpy(), expected_y_grad.cpu().numpy())
+        npt.assert_almost_equal(
+            x.grad.detach().cpu().numpy(), expected_x_grad.cpu().numpy()
+        )
+        npt.assert_almost_equal(
+            y.grad.detach().cpu().numpy(), expected_y_grad.cpu().numpy()
+        )
 
     def test_dot_single_vector(self):
         x = torch.tensor([1.0, 2.0, 3.0], device=self.device, requires_grad=True)
@@ -72,8 +80,12 @@ class TestVectorMath(TestCase):
         # Single vector dot product gradients
         expected_x_grad = y.clone().detach()  # [4, 5, 6]
         expected_y_grad = x.clone().detach()  # [1, 2, 3]
-        npt.assert_almost_equal(x.grad.detach().cpu().numpy(), expected_x_grad.cpu().numpy())
-        npt.assert_almost_equal(y.grad.detach().cpu().numpy(), expected_y_grad.cpu().numpy())
+        npt.assert_almost_equal(
+            x.grad.detach().cpu().numpy(), expected_x_grad.cpu().numpy()
+        )
+        npt.assert_almost_equal(
+            y.grad.detach().cpu().numpy(), expected_y_grad.cpu().numpy()
+        )
 
     def test_gpu_compatibility(self):
         if not torch.cuda.is_available():
@@ -89,7 +101,9 @@ class TestVectorMath(TestCase):
         self.assertTrue(vec.grad.is_cuda)
         # Verify GPU gradients match CPU test
         expected_grad = torch.tensor([1.0, 1.0, 1.0], device=device)
-        npt.assert_almost_equal(vec.grad.detach().cpu().numpy(), expected_grad.cpu().numpy())
+        npt.assert_almost_equal(
+            vec.grad.detach().cpu().numpy(), expected_grad.cpu().numpy()
+        )
 
 
 if __name__ == "__main__":

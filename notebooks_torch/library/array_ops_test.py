@@ -51,17 +51,29 @@ class TestTensorLookup2D(TestCase):
         self.assertEqual(d_element_y_index.shape, (3,))
 
         npt.assert_almost_equal(element.detach().cpu().numpy(), [2, 222])
-        
+
         # Snapshot test for gradients
         expected_arr_grad = torch.zeros((3, 3, 2), device=self.device)
         expected_arr_grad[1, 2, :] = 1.0  # Gradient flows to the selected element
-        npt.assert_almost_equal(d_element_arr.detach().cpu().numpy(), expected_arr_grad.cpu().numpy())
-        
-        expected_x_index_grad = torch.tensor([0.0, 224.0, 0.0], device=self.device)  # Sum of selected row
-        npt.assert_almost_equal(d_element_x_index.detach().cpu().numpy(), expected_x_index_grad.cpu().numpy())
-        
-        expected_y_index_grad = torch.tensor([0.0, 0.0, 224.0], device=self.device)  # Sum of selected column
-        npt.assert_almost_equal(d_element_y_index.detach().cpu().numpy(), expected_y_index_grad.cpu().numpy())
+        npt.assert_almost_equal(
+            d_element_arr.detach().cpu().numpy(), expected_arr_grad.cpu().numpy()
+        )
+
+        expected_x_index_grad = torch.tensor(
+            [0.0, 224.0, 0.0], device=self.device
+        )  # Sum of selected row
+        npt.assert_almost_equal(
+            d_element_x_index.detach().cpu().numpy(),
+            expected_x_index_grad.cpu().numpy(),
+        )
+
+        expected_y_index_grad = torch.tensor(
+            [0.0, 0.0, 224.0], device=self.device
+        )  # Sum of selected column
+        npt.assert_almost_equal(
+            d_element_y_index.detach().cpu().numpy(),
+            expected_y_index_grad.cpu().numpy(),
+        )
 
     def test_gpu_compatibility(self):
         """Test that operations work on GPU if available"""
@@ -104,17 +116,23 @@ class TestTensorLookup2D(TestCase):
         self.assertTrue(y_index.grad.is_cuda)
 
         npt.assert_almost_equal(element.detach().cpu().numpy(), [2, 222])
-        
+
         # Snapshot test for GPU gradients - same values as CPU test
         expected_arr_grad = torch.zeros((3, 3, 2), device=device)
         expected_arr_grad[1, 2, :] = 1.0
-        npt.assert_almost_equal(arr.grad.detach().cpu().numpy(), expected_arr_grad.cpu().numpy())
-        
+        npt.assert_almost_equal(
+            arr.grad.detach().cpu().numpy(), expected_arr_grad.cpu().numpy()
+        )
+
         expected_x_index_grad = torch.tensor([0.0, 224.0, 0.0], device=device)
-        npt.assert_almost_equal(x_index.grad.detach().cpu().numpy(), expected_x_index_grad.cpu().numpy())
-        
+        npt.assert_almost_equal(
+            x_index.grad.detach().cpu().numpy(), expected_x_index_grad.cpu().numpy()
+        )
+
         expected_y_index_grad = torch.tensor([0.0, 0.0, 224.0], device=device)
-        npt.assert_almost_equal(y_index.grad.detach().cpu().numpy(), expected_y_index_grad.cpu().numpy())
+        npt.assert_almost_equal(
+            y_index.grad.detach().cpu().numpy(), expected_y_index_grad.cpu().numpy()
+        )
 
 
 if __name__ == "__main__":

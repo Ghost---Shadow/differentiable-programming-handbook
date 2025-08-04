@@ -37,8 +37,12 @@ class TestComprehensiveArrayOps(TestCase):
         npt.assert_almost_equal(result.detach().cpu().numpy(), expected.cpu().numpy())
 
         result.sum().backward()
-        expected_grad = torch.tensor([1., 0., 1.], device=self.device)  # Only unmasked elements get gradient
-        npt.assert_almost_equal(arr.grad.detach().cpu().numpy(), expected_grad.cpu().numpy())
+        expected_grad = torch.tensor(
+            [1.0, 0.0, 1.0], device=self.device
+        )  # Only unmasked elements get gradient
+        npt.assert_almost_equal(
+            arr.grad.detach().cpu().numpy(), expected_grad.cpu().numpy()
+        )
 
     def test_assign_index_vectored(self):
         arr = torch.tensor([1.0, 2.0, 3.0], device=self.device, requires_grad=True)
@@ -67,8 +71,12 @@ class TestComprehensiveArrayOps(TestCase):
         npt.assert_almost_equal(result.detach().cpu().numpy(), expected)
 
         result.backward()
-        expected_grad = torch.tensor([0.5, 0.5, 0.0], device=self.device)  # Linear interpolation gradients
-        npt.assert_almost_equal(arr.grad.detach().cpu().numpy(), expected_grad.cpu().numpy())
+        expected_grad = torch.tensor(
+            [0.5, 0.5, 0.0], device=self.device
+        )  # Linear interpolation gradients
+        npt.assert_almost_equal(
+            arr.grad.detach().cpu().numpy(), expected_grad.cpu().numpy()
+        )
 
     def test_superposition_lookup_vectored(self):
         arr = torch.tensor([10.0, 20.0, 30.0], device=self.device, requires_grad=True)
@@ -80,8 +88,12 @@ class TestComprehensiveArrayOps(TestCase):
         npt.assert_almost_equal(result.detach().cpu().numpy(), expected)
 
         result.backward()
-        expected_grad = torch.tensor([0.5, 0.3, 0.2], device=self.device)  # Gradient equals weights
-        npt.assert_almost_equal(arr.grad.detach().cpu().numpy(), expected_grad.cpu().numpy())
+        expected_grad = torch.tensor(
+            [0.5, 0.3, 0.2], device=self.device
+        )  # Gradient equals weights
+        npt.assert_almost_equal(
+            arr.grad.detach().cpu().numpy(), expected_grad.cpu().numpy()
+        )
 
     def test_asymmetrical_vectored_lookup(self):
         v = torch.tensor(
@@ -188,8 +200,12 @@ class TestComprehensiveArrayOps(TestCase):
         result.sum().backward()
         self.assertTrue(arr.grad.is_cuda)
         # Verify gradient values match CPU test
-        expected_grad = torch.tensor([1., 0., 1.], device=device)  # Only unmasked elements get gradient
-        npt.assert_almost_equal(arr.grad.detach().cpu().numpy(), expected_grad.cpu().numpy())
+        expected_grad = torch.tensor(
+            [1.0, 0.0, 1.0], device=device
+        )  # Only unmasked elements get gradient
+        npt.assert_almost_equal(
+            arr.grad.detach().cpu().numpy(), expected_grad.cpu().numpy()
+        )
 
 
 if __name__ == "__main__":
