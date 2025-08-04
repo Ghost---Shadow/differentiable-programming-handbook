@@ -210,17 +210,39 @@ class DifferentiableArray(nn.Module):
         # Clamp indices to valid range [0, array_size-1]
         indices = torch.clamp(indices, 0, self.array_size - 1)
 
-        # Normalize indices to [0, 1] range based on array size
-        normalized_indices = indices / max(1, self.array_size - 1)
-        normalized_indices = normalized_indices.unsqueeze(-1)  # Add feature dimension
+        # Check if all indices are integers (for exact lookup)
+        integer_mask = torch.abs(indices - torch.round(indices)) < 1e-6
+        
+        if torch.all(integer_mask):
+            # All indices are integers - return exact values
+            int_indices = torch.round(indices).long()
+            return self._values.squeeze(0)[int_indices]
+        
+        # Check for mixed integer/fractional indices
+        results = torch.zeros_like(indices)
+        
+        # Handle integer indices exactly
+        if torch.any(integer_mask):
+            int_indices = torch.round(indices[integer_mask]).long()
+            results[integer_mask] = self._values.squeeze(0)[int_indices]
+        
+        # Handle fractional indices with soft attention
+        fractional_mask = ~integer_mask
+        if torch.any(fractional_mask):
+            fractional_indices = indices[fractional_mask]
+            
+            # Normalize indices to [0, 1] range based on array size
+            normalized_indices = fractional_indices / max(1, self.array_size - 1)
+            normalized_indices = normalized_indices.unsqueeze(-1)  # Add feature dimension
 
-        # Use forward pass for differentiable lookup
-        batch_size = normalized_indices.shape[0]
-        values_batch = self._values.expand(batch_size, -1)
+            # Use forward pass for differentiable lookup
+            batch_size = normalized_indices.shape[0]
+            values_batch = self._values.expand(batch_size, -1)
 
-        output, _, _ = self.forward(values_batch, normalized_indices)
+            output, _, _ = self.forward(values_batch, normalized_indices)
+            results[fractional_mask] = output.squeeze(-1)
 
-        return output.squeeze(-1)
+        return results
 
     def _set_internal(self, indices, values):
         """

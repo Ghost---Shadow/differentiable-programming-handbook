@@ -15,6 +15,13 @@ class TestDifferentiableArray(unittest.TestCase):
             self.test_tensor, embedding_dim=32, temperature=0.5
         )
 
+    # python -m unittest differentiable_array_test.TestDifferentiableArray.test_losslessness -v
+    def test_losslessness(self):
+        """Test fractional indexing for interpolation."""
+        # Test fractional indices (should be reasonable values)
+        for i in range(len(self.test_tensor)):
+            self.assertEqual(self.diff_array[i].item(), self.test_tensor[i].item())
+
     # python -m unittest differentiable_array_test.TestDifferentiableArray.test_getitem_fractional_indexing -v
     def test_getitem_fractional_indexing(self):
         """Test fractional indexing for interpolation."""
@@ -181,8 +188,8 @@ class TestSelfTraining(unittest.TestCase):
         new_value = diff_array[2.0]
 
         # Check exact values
-        self.assertEqual(original_value.item(), 2.668660879135132)
-        self.assertEqual(new_value.item(), 2.738847017288208)
+        self.assertEqual(original_value.item(), 3.0)
+        self.assertEqual(new_value.item(), 3.0030014514923096)
 
     # python -m unittest differentiable_array_test.TestSelfTraining.test_training_mode_control -v
     def test_training_mode_control(self):
@@ -247,7 +254,7 @@ class TestIntegration(unittest.TestCase):
 
         self.assertEqual(results.shape[0], 50)
         # Check exact first result
-        self.assertEqual(results[0].item(), 0.004231293685734272)
+        self.assertEqual(results[0].item(), 1.9269152879714966)
 
 
 if __name__ == "__main__":
