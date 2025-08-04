@@ -226,21 +226,29 @@ class DifferentiableArray(nn.Module):
             int_indices = torch.round(indices[integer_mask]).long()
             results[integer_mask] = self._values.squeeze(0)[int_indices]
         
-        # Handle fractional indices with soft attention
+        # Handle fractional indices with linear interpolation for monotonicity
         fractional_mask = ~integer_mask
         if torch.any(fractional_mask):
             fractional_indices = indices[fractional_mask]
             
-            # Normalize indices to [0, 1] range based on array size
-            normalized_indices = fractional_indices / max(1, self.array_size - 1)
-            normalized_indices = normalized_indices.unsqueeze(-1)  # Add feature dimension
-
-            # Use forward pass for differentiable lookup
-            batch_size = normalized_indices.shape[0]
-            values_batch = self._values.expand(batch_size, -1)
-
-            output, _, _ = self.forward(values_batch, normalized_indices)
-            results[fractional_mask] = output.squeeze(-1)
+            # For each fractional index, do linear interpolation between adjacent values
+            fractional_results = torch.zeros_like(fractional_indices)
+            for i, idx in enumerate(fractional_indices):
+                # Get floor and ceiling indices
+                floor_idx = torch.floor(idx).long()
+                ceil_idx = torch.clamp(floor_idx + 1, max=self.array_size - 1).long()
+                
+                # Get the fractional part
+                frac = idx - floor_idx
+                
+                # Linear interpolation (maintains differentiability)
+                val_floor = self._values.squeeze(0)[floor_idx]
+                val_ceil = self._values.squeeze(0)[ceil_idx]
+                interpolated_val = val_floor + frac * (val_ceil - val_floor)
+                
+                fractional_results[i] = interpolated_val
+            
+            results[fractional_mask] = fractional_results
 
         return results
 

@@ -26,11 +26,20 @@ class TestDifferentiableArray(unittest.TestCase):
     def test_getitem_fractional_indexing(self):
         """Test fractional indexing for interpolation."""
         # Test fractional indices (should be reasonable values)
+        val_1_0 = self.diff_array[1]
         val_1_5 = self.diff_array[1.5]
+        val_2_0 = self.diff_array[2]
         val_2_7 = self.diff_array[2.7]
+        val_3_0 = self.diff_array[3]
 
-        self.assertEqual(val_1_5.item(), 14.631519317626953)
-        self.assertEqual(val_2_7.item(), 11.098245620727539)
+        self.assertEqual(val_1_0.item(), 4.0)
+        self.assertEqual(val_1_5.item(), 6.5)
+        self.assertEqual(val_2_0.item(), 9.0)
+        self.assertEqual(val_2_7.item(), 13.90000057220459)
+        self.assertEqual(val_3_0.item(), 16.0)
+
+        self.assertTrue(val_1_0 < val_1_5 < val_2_0)
+        self.assertTrue(val_2_0 < val_2_7 < val_3_0)
 
     # python -m unittest differentiable_array_test.TestDifferentiableArray.test_setitem_fractional_assignment -v
     def test_setitem_fractional_assignment(self):
