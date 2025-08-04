@@ -1,7 +1,6 @@
 import unittest
 import torch
 import torch.nn.functional as F
-import math
 from differentiable_array import DifferentiableArray, DifferentiableArrayLoss
 
 
@@ -10,34 +9,46 @@ class TestDifferentiableArray(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
+        torch.manual_seed(42)
         self.test_tensor = torch.tensor([1.0, 4.0, 9.0, 16.0, 25.0, 36.0, 49.0])
         self.diff_array = DifferentiableArray(
             self.test_tensor, embedding_dim=32, temperature=0.5
         )
 
+    # python -m unittest differentiable_array_test.TestDifferentiableArray.test_getitem_fractional_indexing -v
     def test_getitem_fractional_indexing(self):
         """Test fractional indexing for interpolation."""
         # Test fractional indices (should be reasonable values)
         val_1_5 = self.diff_array[1.5]
         val_2_7 = self.diff_array[2.7]
 
-        # Just test that we get reasonable tensor values
-        self.assertIsInstance(val_1_5, torch.Tensor)
-        self.assertIsInstance(val_2_7, torch.Tensor)
-        self.assertTrue(0.1 < val_1_5.item() < 1000.0)
-        self.assertTrue(0.1 < val_2_7.item() < 1000.0)
+        self.assertEqual(val_1_5.item(), 14.631519317626953)
+        self.assertEqual(val_2_7.item(), 11.098245620727539)
 
+    # python -m unittest differentiable_array_test.TestDifferentiableArray.test_setitem_fractional_assignment -v
     def test_setitem_fractional_assignment(self):
         """Test fractional assignment (soft assignment)."""
+        torch.manual_seed(42)
         original_values = self.diff_array.values.clone()
         self.diff_array[2.5] = 150.0
         new_values = self.diff_array.values
 
-        # Values should have changed
-        self.assertFalse(torch.allclose(original_values, new_values))
+        # Check exact values after assignment
+        expected_values = [
+            1.0049947500228882,
+            4.004993438720703,
+            9.004995346069336,
+            16.005006790161133,
+            25.005008697509766,
+            36.0050048828125,
+            49.0050048828125,
+        ]
+        self.assertEqual(new_values.tolist(), expected_values)
 
+    # python -m unittest differentiable_array_test.TestDifferentiableArray.test_forward_method -v
     def test_forward_method(self):
         """Test forward method directly."""
+        torch.manual_seed(42)
         batch_size = 2
         values = self.diff_array._values.expand(batch_size, -1)
         keys = torch.tensor([[0.5], [0.8]])
@@ -48,13 +59,18 @@ class TestDifferentiableArray(unittest.TestCase):
         self.assertEqual(attention_weights.shape, (batch_size, 7))
         self.assertEqual(similarities.shape, (batch_size, 7))
 
-        # Attention weights should sum to 1
-        self.assertTrue(
-            torch.allclose(attention_weights.sum(dim=1), torch.ones(batch_size))
-        )
+        # Check exact output values
+        self.assertEqual(output[0, 0].item(), 10.34654426574707)
+        self.assertEqual(output[1, 0].item(), 6.895977020263672)
 
+        # Check exact attention weights sum
+        self.assertEqual(attention_weights.sum(dim=1)[0].item(), 1.0)
+        self.assertEqual(attention_weights.sum(dim=1)[1].item(), 1.0)
+
+    # python -m unittest differentiable_array_test.TestDifferentiableArray.test_gradient_flow -v
     def test_gradient_flow(self):
         """Test that gradients flow through the array operations."""
+        torch.manual_seed(42)
         # Create array for gradient testing
         test_tensor = torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0])
         grad_array = DifferentiableArray(test_tensor)
@@ -66,24 +82,27 @@ class TestDifferentiableArray(unittest.TestCase):
         loss = (value - 3.5) ** 2
         loss.backward()
 
-        # Check that gradients exist for the array values
-        self.assertIsNotNone(grad_array._values.grad)
-        self.assertGreater(torch.sum(torch.abs(grad_array._values.grad)).item(), 0)
+        # Check exact gradient values
+        actual_grad_sum = torch.sum(torch.abs(grad_array._values.grad)).item()
+        self.assertEqual(actual_grad_sum, 1.8233896493911743)
 
+    # python -m unittest differentiable_array_test.TestDifferentiableArray.test_gradient_direction -v
     def test_gradient_direction(self):
         """Test gradient direction analysis."""
-        # This test needs to be adjusted since get_gradient_direction might return None in some cases
+        torch.manual_seed(42)
         key = torch.tensor([[0.5]], requires_grad=True)
         try:
             gradient = self.diff_array.get_gradient_direction(key, target_position=3)
-            if gradient is not None:
-                self.assertEqual(gradient.shape, key.shape)
+            # The gradient should be None for this specific case
+            self.assertEqual(gradient, None)
         except Exception as e:
             # If the method has issues, we'll skip this specific test
             self.skipTest(f"Gradient direction test skipped due to: {e}")
 
+    # python -m unittest differentiable_array_test.TestDifferentiableArray.test_position_initialization_binary -v
     def test_position_initialization_binary(self):
         """Test binary position initialization."""
+        torch.manual_seed(42)
         diff_array = DifferentiableArray(
             array_size=4, embedding_dim=8, position_init="binary"
         )
@@ -91,6 +110,15 @@ class TestDifferentiableArray(unittest.TestCase):
 
         # Should have binary-like structure
         self.assertEqual(positions.shape, (4, 8))
+
+        # Check exact binary pattern
+        expected_positions = [
+            [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0],
+            [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 1.0],
+            [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 1.0, -1.0],
+            [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 1.0, 1.0],
+        ]
+        self.assertEqual(positions.tolist(), expected_positions)
 
 
 class TestDifferentiableArrayLoss(unittest.TestCase):
@@ -101,22 +129,25 @@ class TestDifferentiableArrayLoss(unittest.TestCase):
         self.loss_fn = DifferentiableArrayLoss(
             structure_weight=0.1, smoothness_weight=0.01
         )
-        self.position_embeddings = torch.randn(5, 16)
-        self.similarities = torch.randn(2, 5)
 
+    # python -m unittest differentiable_array_test.TestDifferentiableArrayLoss.test_loss_computation -v
     def test_loss_computation(self):
         """Test loss computation."""
+        torch.manual_seed(42)
+        position_embeddings = torch.randn(5, 16)
+        similarities = torch.randn(2, 5)
         output = torch.randn(2, 1)
         target = torch.randn(2, 1)
 
         total_loss, recon_loss, structure_loss, smoothness_loss = self.loss_fn(
-            output, target, self.position_embeddings, self.similarities
+            output, target, position_embeddings, similarities
         )
 
-        self.assertIsInstance(total_loss, torch.Tensor)
-        self.assertIsInstance(recon_loss, torch.Tensor)
-        self.assertIsInstance(structure_loss, torch.Tensor)
-        self.assertIsInstance(smoothness_loss, torch.Tensor)
+        # Check exact loss values
+        self.assertEqual(total_loss.item(), 5.430203914642334)
+        self.assertEqual(recon_loss.item(), 2.7257707118988037)
+        self.assertEqual(structure_loss.item(), 26.980382919311523)
+        self.assertEqual(smoothness_loss.item(), 0.6395003795623779)
 
         # Total loss should be sum of components
         expected_total = (
@@ -124,14 +155,16 @@ class TestDifferentiableArrayLoss(unittest.TestCase):
             + self.loss_fn.structure_weight * structure_loss
             + self.loss_fn.smoothness_weight * smoothness_loss
         )
-        self.assertTrue(torch.allclose(total_loss, expected_total))
+        self.assertEqual(total_loss.item(), expected_total.item())
 
 
 class TestSelfTraining(unittest.TestCase):
     """Tests for self-training functionality."""
 
+    # python -m unittest differentiable_array_test.TestSelfTraining.test_self_training_on_assignment -v
     def test_self_training_on_assignment(self):
         """Test that self-training occurs during assignment."""
+        torch.manual_seed(42)
         diff_array = DifferentiableArray(
             torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0]),
             training_steps=3,  # Fewer steps for faster testing
@@ -147,33 +180,38 @@ class TestSelfTraining(unittest.TestCase):
         # After self-training, the value should be closer to the target
         new_value = diff_array[2.0]
 
-        # The value should have moved toward the target (not necessarily exact due to soft indexing)
-        self.assertNotEqual(original_value.item(), new_value.item())
+        # Check exact values
+        self.assertEqual(original_value.item(), 2.668660879135132)
+        self.assertEqual(new_value.item(), 2.738847017288208)
 
+    # python -m unittest differentiable_array_test.TestSelfTraining.test_training_mode_control -v
     def test_training_mode_control(self):
         """Test controlling training mode."""
+        torch.manual_seed(42)
         diff_array = DifferentiableArray(torch.tensor([1.0, 2.0, 3.0]))
 
         # Disable training
         diff_array.set_training_mode(auto_train=False)
-        self.assertFalse(diff_array.auto_train)
-        self.assertIsNone(diff_array.optimizer)
+        self.assertEqual(diff_array.auto_train, False)
+        self.assertEqual(diff_array.optimizer, None)
 
         # Re-enable with new parameters
         diff_array.set_training_mode(
             auto_train=True, learning_rate=0.01, training_steps=3
         )
-        self.assertTrue(diff_array.auto_train)
+        self.assertEqual(diff_array.auto_train, True)
         self.assertEqual(diff_array.learning_rate, 0.01)
         self.assertEqual(diff_array.training_steps, 3)
-        self.assertIsNotNone(diff_array.optimizer)
+        self.assertNotEqual(diff_array.optimizer, None)
 
 
 class TestIntegration(unittest.TestCase):
     """Integration tests for the complete system."""
 
+    # python -m unittest differentiable_array_test.TestIntegration.test_training_simulation -v
     def test_training_simulation(self):
         """Test a complete training simulation."""
+        torch.manual_seed(42)
         # Create array with auto-training disabled for manual control
         test_tensor = torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0])
         diff_array = DifferentiableArray(
@@ -192,11 +230,13 @@ class TestIntegration(unittest.TestCase):
         loss.backward()
         optimizer.step()
 
-        # Should complete without errors
-        self.assertIsInstance(loss, torch.Tensor)
+        # Check exact loss value
+        self.assertEqual(loss.item(), 1.420246958732605)
 
+    # python -m unittest differentiable_array_test.TestIntegration.test_memory_and_performance -v
     def test_memory_and_performance(self):
         """Test memory usage and basic performance."""
+        torch.manual_seed(42)
         # Create larger array
         large_values = torch.randn(1000)
         diff_array = DifferentiableArray(large_values, embedding_dim=32)
@@ -206,6 +246,8 @@ class TestIntegration(unittest.TestCase):
         results = diff_array.get(batch_indices)
 
         self.assertEqual(results.shape[0], 50)
+        # Check exact first result
+        self.assertEqual(results[0].item(), 0.004231293685734272)
 
 
 if __name__ == "__main__":
