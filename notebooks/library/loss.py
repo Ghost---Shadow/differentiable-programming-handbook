@@ -3,7 +3,7 @@ import tensorflow as tf
 
 @tf.function
 def bistable_loss(x):
-    a = (x ** 2)
+    a = x**2
     b = (x - 1) ** 2
 
     return a * b

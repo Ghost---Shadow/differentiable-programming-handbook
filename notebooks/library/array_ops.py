@@ -167,7 +167,7 @@ def match_shapes(x, y):
 
     # Find the difference in ranks
     common_shape = h_shape[:l_rank]
-    tf.debugging.assert_equal(common_shape, l_shape, 'No common shape to broadcast')
+    tf.debugging.assert_equal(common_shape, l_shape, "No common shape to broadcast")
     padding = tf.ones(h_rank - l_rank, dtype=tf.int32)
 
     # Pad the difference with ones and reshape
