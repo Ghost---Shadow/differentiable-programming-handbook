@@ -33,6 +33,10 @@ class DifferentiableArray(nn.Module):
         embedding_dim=64,
         temperature=1.0,
         position_init="uniform",
+        auto_train=True,
+        learning_rate=0.001,
+        training_steps=5,
+        loss_weights=None,
     ):
         super().__init__()
 
@@ -50,6 +54,17 @@ class DifferentiableArray(nn.Module):
 
         self.embedding_dim = embedding_dim
         self.temperature = temperature
+        self.auto_train = auto_train
+        self.learning_rate = learning_rate
+        self.training_steps = training_steps
+
+        # Initialize loss function with custom weights
+        if loss_weights is None:
+            loss_weights = {"structure_weight": 0.1, "smoothness_weight": 0.01}
+        self.loss_fn = DifferentiableArrayLoss(**loss_weights)
+
+        # Will be initialized after parameters are created
+        self.optimizer = None
 
         # Learnable position embeddings for each array position
         self.position_embeddings = nn.Parameter(
@@ -61,6 +76,10 @@ class DifferentiableArray(nn.Module):
 
         # Initialize position embeddings with meaningful structure
         self._initialize_positions(position_init)
+
+        # Initialize optimizer after all parameters are created
+        if self.auto_train:
+            self.optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 
     def _initialize_positions(self, init_type="uniform"):
         """Initialize position embeddings to have ordered structure."""
@@ -205,7 +224,8 @@ class DifferentiableArray(nn.Module):
 
     def _set_internal(self, indices, values):
         """
-        Internal method for setting values at specified indices using differentiable soft assignment.
+        Internal method for setting values at specified indices using differentiable training.
+        This method now performs self-training to optimize the array structure.
 
         Args:
             indices: torch.Tensor - the indices to set
@@ -242,28 +262,58 @@ class DifferentiableArray(nn.Module):
 
         # Normalize indices to [0, 1] range
         normalized_indices = indices / max(1, self.array_size - 1)
+        normalized_indices = normalized_indices.unsqueeze(-1)  # Add feature dimension
 
-        # Compute attention weights for soft assignment
-        batch_size = normalized_indices.shape[0]
-        key_embeddings = self.key_projection(normalized_indices.unsqueeze(-1))
-        similarities = torch.matmul(key_embeddings, self.position_embeddings.T)
-        attention_weights = F.softmax(similarities / self.temperature, dim=-1)
+        # Target values for training
+        target_values = values.unsqueeze(-1)  # Shape: (batch_size, 1)
 
-        # Apply soft assignment using attention weights
-        with torch.no_grad():
-            for i in range(batch_size):
-                # Weighted update: blend new value into existing array
-                update_strength = 1.0  # Full update for setitem operations
-                for j in range(self.array_size):
-                    weight = attention_weights[i, j].item()
-                    if (
-                        weight > 0.01
-                    ):  # Only update positions with significant attention
-                        # For exact indices, this becomes a hard assignment
-                        # For fractional indices, this distributes the assignment
-                        self._values[0, j] += (
-                            update_strength * weight * (values[i] - self._values[0, j])
-                        )
+        if self.auto_train and self.optimizer is not None:
+            # Self-training: optimize the array to better match the assignment
+            self.train()  # Set to training mode
+
+            for step in range(self.training_steps):
+                self.optimizer.zero_grad()
+
+                # Forward pass to get current predictions
+                batch_size = normalized_indices.shape[0]
+                values_batch = self._values.expand(batch_size, -1)
+
+                output, attention_weights, similarities = self.forward(
+                    values_batch, normalized_indices
+                )
+
+                # Compute loss using the specialized loss function
+                total_loss, recon_loss, structure_loss, smoothness_loss = self.loss_fn(
+                    output, target_values, self.position_embeddings, similarities
+                )
+
+                # Backpropagate and update
+                total_loss.backward()
+                self.optimizer.step()
+
+                # Optional: early stopping if loss is very small
+                if total_loss.item() < 1e-6:
+                    break
+
+            self.eval()  # Set back to eval mode
+        else:
+            # Fallback: direct soft assignment (non-trainable update)
+            with torch.no_grad():
+                batch_size = normalized_indices.shape[0]
+                key_embeddings = self.key_projection(normalized_indices)
+                similarities = torch.matmul(key_embeddings, self.position_embeddings.T)
+                attention_weights = F.softmax(similarities / self.temperature, dim=-1)
+
+                # Apply soft assignment using attention weights
+                for i in range(batch_size):
+                    for j in range(self.array_size):
+                        weight = attention_weights[i, j].item()
+                        if (
+                            weight > 0.01
+                        ):  # Only update positions with significant attention
+                            self._values[0, j] += weight * (
+                                values[i] - self._values[0, j]
+                            )
 
     # Keep the old methods for backwards compatibility and explicit API
     def get(self, indices):
@@ -282,6 +332,8 @@ class DifferentiableArray(nn.Module):
     @values.setter
     def values(self, new_values):
         """Set new array values."""
+        old_size = self.array_size
+
         if isinstance(new_values, torch.Tensor):
             if new_values.dim() == 1:
                 new_values = new_values.unsqueeze(0)
@@ -304,6 +356,10 @@ class DifferentiableArray(nn.Module):
                     torch.randn(self.array_size, self.embedding_dim)
                 )
                 self._initialize_positions("uniform")
+
+        # Reinitialize optimizer if auto_train is enabled and size changed
+        if self.auto_train and old_size != self.array_size:
+            self.optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 
     @property
     def shape(self):
@@ -332,6 +388,9 @@ class DifferentiableArray(nn.Module):
             self._values.clone(),
             embedding_dim=self.embedding_dim,
             temperature=self.temperature,
+            auto_train=self.auto_train,
+            learning_rate=self.learning_rate,
+            training_steps=self.training_steps,
         )
         new_array.position_embeddings.data = self.position_embeddings.data.clone()
         new_array.key_projection.weight.data = self.key_projection.weight.data.clone()
@@ -418,6 +477,33 @@ class DifferentiableArray(nn.Module):
     def visualize_position_space(self):
         """Return position embeddings for visualization."""
         return self.position_embeddings.detach()
+
+    def set_training_mode(
+        self, auto_train=True, learning_rate=None, training_steps=None
+    ):
+        """Enable or disable auto-training and update parameters."""
+        self.auto_train = auto_train
+
+        if learning_rate is not None:
+            self.learning_rate = learning_rate
+
+        if training_steps is not None:
+            self.training_steps = training_steps
+
+        # Reinitialize optimizer with new learning rate if needed
+        if self.auto_train:
+            self.optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        else:
+            self.optimizer = None
+
+    def get_training_info(self):
+        """Get current training configuration."""
+        return {
+            "auto_train": self.auto_train,
+            "learning_rate": self.learning_rate,
+            "training_steps": self.training_steps,
+            "has_optimizer": self.optimizer is not None,
+        }
 
 
 class DifferentiableArrayLoss(nn.Module):

@@ -378,14 +378,137 @@ class TestDifferentiableArrayLoss(unittest.TestCase):
         self.assertIsInstance(total_light, torch.Tensor)
 
 
+class TestSelfTraining(unittest.TestCase):
+    """Tests for self-training functionality."""
+
+    def test_auto_training_enabled_by_default(self):
+        """Test that auto-training is enabled by default."""
+        diff_array = DifferentiableArray(torch.tensor([1.0, 2.0, 3.0]))
+
+        self.assertTrue(diff_array.auto_train)
+        self.assertIsNotNone(diff_array.optimizer)
+        self.assertEqual(diff_array.learning_rate, 0.001)
+        self.assertEqual(diff_array.training_steps, 5)
+
+    def test_auto_training_disabled(self):
+        """Test disabling auto-training."""
+        diff_array = DifferentiableArray(
+            torch.tensor([1.0, 2.0, 3.0]), auto_train=False
+        )
+
+        self.assertFalse(diff_array.auto_train)
+        self.assertIsNone(diff_array.optimizer)
+
+    def test_custom_training_parameters(self):
+        """Test custom training parameters."""
+        diff_array = DifferentiableArray(
+            torch.tensor([1.0, 2.0, 3.0]), learning_rate=0.01, training_steps=10
+        )
+
+        self.assertEqual(diff_array.learning_rate, 0.01)
+        self.assertEqual(diff_array.training_steps, 10)
+
+    def test_self_training_on_assignment(self):
+        """Test that self-training occurs during assignment."""
+        diff_array = DifferentiableArray(
+            torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0]),
+            training_steps=3,  # Fewer steps for faster testing
+        )
+
+        # Get initial loss
+        original_value = diff_array[2.0]
+
+        # Assign a very different value
+        target_value = 100.0
+        diff_array[2.0] = target_value
+
+        # After self-training, the value should be closer to the target
+        new_value = diff_array[2.0]
+
+        # The value should have moved toward the target (not necessarily exact due to soft indexing)
+        self.assertNotEqual(original_value.item(), new_value.item())
+
+    def test_training_mode_control(self):
+        """Test controlling training mode."""
+        diff_array = DifferentiableArray(torch.tensor([1.0, 2.0, 3.0]))
+
+        # Disable training
+        diff_array.set_training_mode(auto_train=False)
+        self.assertFalse(diff_array.auto_train)
+        self.assertIsNone(diff_array.optimizer)
+
+        # Re-enable with new parameters
+        diff_array.set_training_mode(
+            auto_train=True, learning_rate=0.01, training_steps=3
+        )
+        self.assertTrue(diff_array.auto_train)
+        self.assertEqual(diff_array.learning_rate, 0.01)
+        self.assertEqual(diff_array.training_steps, 3)
+        self.assertIsNotNone(diff_array.optimizer)
+
+    def test_get_training_info(self):
+        """Test getting training information."""
+        diff_array = DifferentiableArray(
+            torch.tensor([1.0, 2.0, 3.0]), learning_rate=0.005, training_steps=7
+        )
+
+        info = diff_array.get_training_info()
+
+        self.assertTrue(info["auto_train"])
+        self.assertEqual(info["learning_rate"], 0.005)
+        self.assertEqual(info["training_steps"], 7)
+        self.assertTrue(info["has_optimizer"])
+
+    def test_training_with_batch_assignment(self):
+        """Test self-training with batch assignments."""
+        diff_array = DifferentiableArray(
+            torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0]),
+            training_steps=2,  # Fewer steps for faster testing
+        )
+
+        # Batch assignment
+        diff_array[[1.5, 3.5]] = [10.0, 20.0]
+
+        # Should complete without errors
+        self.assertIsInstance(diff_array.values, torch.Tensor)
+
+    def test_copy_preserves_training_settings(self):
+        """Test that copy preserves training settings."""
+        original = DifferentiableArray(
+            torch.tensor([1.0, 2.0, 3.0]),
+            auto_train=True,
+            learning_rate=0.01,
+            training_steps=10,
+        )
+
+        copied = original.copy()
+
+        self.assertEqual(copied.auto_train, original.auto_train)
+        self.assertEqual(copied.learning_rate, original.learning_rate)
+        self.assertEqual(copied.training_steps, original.training_steps)
+
+    def test_optimizer_reinitialization_on_size_change(self):
+        """Test that optimizer is reinitialized when array size changes."""
+        diff_array = DifferentiableArray(torch.tensor([1.0, 2.0, 3.0]))
+        original_optimizer = diff_array.optimizer
+
+        # Change array size
+        diff_array.values = torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0])
+
+        # Optimizer should be different (reinitialized)
+        self.assertIsNot(diff_array.optimizer, original_optimizer)
+
+
 class TestIntegration(unittest.TestCase):
     """Integration tests for the complete system."""
 
     def test_training_simulation(self):
         """Test a complete training simulation."""
-        # Create array and optimizer
+        # Create array with auto-training disabled for manual control
         test_tensor = torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0])
-        diff_array = DifferentiableArray(test_tensor, embedding_dim=16)
+        diff_array = DifferentiableArray(
+            test_tensor, embedding_dim=16, auto_train=False
+        )
         optimizer = torch.optim.Adam(diff_array.parameters(), lr=0.01)
 
         # Simulate training step
