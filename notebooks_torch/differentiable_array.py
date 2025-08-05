@@ -44,9 +44,9 @@ class DifferentiableArray(nn.Module):
             torch.randn(self.array_size, embedding_dim)
         )
         self.key_projection = nn.Linear(1, embedding_dim, bias=False)
-        
+
         self._initialize_positions(position_init)
-        
+
         self.optimizer = None
         if self.auto_train:
             self.optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
@@ -110,11 +110,11 @@ class DifferentiableArray(nn.Module):
 
         # Mixed indices
         results = torch.zeros_like(indices, dtype=self._values.dtype)
-        
+
         if torch.any(integer_mask):
             int_indices = torch.round(indices[integer_mask]).long()
             results[integer_mask] = self._values.squeeze(0)[int_indices]
-        
+
         fractional_mask = ~integer_mask
         if torch.any(fractional_mask):
             fractional_indices = indices[fractional_mask]
@@ -131,7 +131,9 @@ class DifferentiableArray(nn.Module):
                 fractional_results = torch.zeros_like(fractional_indices)
                 for i, idx in enumerate(fractional_indices):
                     floor_idx = torch.floor(idx).long()
-                    ceil_idx = torch.clamp(floor_idx + 1, max=self.array_size - 1).long()
+                    ceil_idx = torch.clamp(
+                        floor_idx + 1, max=self.array_size - 1
+                    ).long()
                     frac = idx - floor_idx
                     val_floor = self._values.squeeze(0)[floor_idx]
                     val_ceil = self._values.squeeze(0)[ceil_idx]
@@ -214,14 +216,16 @@ class DifferentiableArray(nn.Module):
         return output, attention_weights, similarities
 
     def get_gradient_direction(self, key, target_position):
-        key = key.clone().requires_grad_(True)
-        key_embedding = self.key_projection(key)
+        key_copy = key.clone().detach().requires_grad_(True)
+        key_embedding = self.key_projection(key_copy)
         target_embedding = self.position_embeddings[target_position]
         similarity = torch.dot(key_embedding.squeeze(), target_embedding)
         similarity.backward()
-        return key.grad
+        return key_copy.grad
 
-    def set_training_mode(self, auto_train=True, learning_rate=None, training_steps=None):
+    def set_training_mode(
+        self, auto_train=True, learning_rate=None, training_steps=None
+    ):
         self.auto_train = auto_train
         if learning_rate is not None:
             self.learning_rate = learning_rate
@@ -241,7 +245,7 @@ class DifferentiableArrayLoss(nn.Module):
 
     def forward(self, output, target, position_embeddings, similarities):
         recon_loss = F.mse_loss(output, target)
-        
+
         structure_loss = 0
         for i in range(len(position_embeddings) - 1):
             diff = position_embeddings[i + 1] - position_embeddings[i]
