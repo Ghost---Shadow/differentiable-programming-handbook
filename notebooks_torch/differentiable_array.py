@@ -11,7 +11,6 @@ class DifferentiableArray(nn.Module):
         array_size=None,
         embedding_dim=64,
         temperature=1.0,
-        position_init="uniform",
         auto_train=True,
         learning_rate=0.001,
         training_steps=5,
@@ -45,26 +44,20 @@ class DifferentiableArray(nn.Module):
         )
         self.key_projection = nn.Linear(1, embedding_dim, bias=False)
 
-        self._initialize_positions(position_init)
+        self._initialize_positions()
 
         self.optimizer = None
         if self.auto_train:
             self.optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 
-    def _initialize_positions(self, init_type="uniform"):
+    def _initialize_positions(self):
         with torch.no_grad():
-            if init_type == "uniform":
-                for i in range(self.array_size):
-                    pos_ratio = i / max(1, self.array_size - 1)
-                    self.position_embeddings[i, 0] = pos_ratio * 2 - 1
-                    for j in range(1, self.embedding_dim):
-                        phase = 2 * math.pi * j * pos_ratio
-                        self.position_embeddings[i, j] = 0.1 * math.sin(phase)
-            elif init_type == "binary":
-                for i in range(self.array_size):
-                    binary_repr = format(i, f"0{self.embedding_dim}b")
-                    for j, bit in enumerate(binary_repr[: self.embedding_dim]):
-                        self.position_embeddings[i, j] = float(bit) * 2 - 1
+            for i in range(self.array_size):
+                pos_ratio = i / max(1, self.array_size - 1)
+                self.position_embeddings[i, 0] = pos_ratio * 2 - 1
+                for j in range(1, self.embedding_dim):
+                    phase = 2 * math.pi * j * pos_ratio
+                    self.position_embeddings[i, j] = 0.1 * math.sin(phase)
 
     def __getitem__(self, index):
         if isinstance(index, (list, tuple)):
@@ -100,15 +93,26 @@ class DifferentiableArray(nn.Module):
         if indices.dim() == 0:
             indices = indices.unsqueeze(0)
 
-        indices = torch.clamp(indices, 0, self.array_size - 1)
+        # Only clamp if gradients are not required for indices
+        if not indices.requires_grad:
+            indices = torch.max(torch.tensor(0.0), torch.min(indices, torch.tensor(float(self.array_size - 1))))
 
-        # Integer indices - exact lookup
+        # If gradients are required, always use attention mechanism
+        if indices.requires_grad:
+            batch_size = indices.shape[0]
+            normalized_indices = indices / max(1, self.array_size - 1)
+            normalized_indices = normalized_indices.unsqueeze(-1)
+            values_batch = self._values.expand(batch_size, -1)
+            output, _, _ = self.forward(values_batch, normalized_indices)
+            return output.squeeze(-1)
+
+        # Integer indices - exact lookup (only when no gradients required)
         integer_mask = torch.abs(indices - torch.round(indices)) < 1e-6
         if torch.all(integer_mask):
             int_indices = torch.round(indices).long()
             return self._values.squeeze(0)[int_indices]
 
-        # Mixed indices
+        # Mixed indices (no gradients required)
         results = torch.zeros_like(indices, dtype=self._values.dtype)
 
         if torch.any(integer_mask):
@@ -165,7 +169,9 @@ class DifferentiableArray(nn.Module):
                 f"Shape mismatch: {values.shape[0]} values for {indices.shape[0]} indices"
             )
 
-        indices = torch.clamp(indices, 0, self.array_size - 1)
+        # Only clamp if gradients are not required for indices
+        if not indices.requires_grad:
+            indices = torch.max(torch.tensor(0.0), torch.min(indices, torch.tensor(float(self.array_size - 1))))
 
         # Integer indices with low temperature - exact assignment
         integer_mask = torch.abs(indices - torch.round(indices)) < 1e-6
@@ -200,9 +206,6 @@ class DifferentiableArray(nn.Module):
     def get(self, indices):
         return self[indices]
 
-    def set(self, indices, values):
-        self[indices] = values
-
     @property
     def values(self):
         return self._values.squeeze(0)
@@ -214,27 +217,6 @@ class DifferentiableArray(nn.Module):
         attention_weights = F.softmax(scaled_similarities, dim=-1)
         output = torch.sum(attention_weights * values, dim=-1, keepdim=True)
         return output, attention_weights, similarities
-
-    def get_gradient_direction(self, key, target_position):
-        key_copy = key.clone().detach().requires_grad_(True)
-        key_embedding = self.key_projection(key_copy)
-        target_embedding = self.position_embeddings[target_position]
-        similarity = torch.dot(key_embedding.squeeze(), target_embedding)
-        similarity.backward()
-        return key_copy.grad
-
-    def set_training_mode(
-        self, auto_train=True, learning_rate=None, training_steps=None
-    ):
-        self.auto_train = auto_train
-        if learning_rate is not None:
-            self.learning_rate = learning_rate
-        if training_steps is not None:
-            self.training_steps = training_steps
-        if self.auto_train:
-            self.optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
-        else:
-            self.optimizer = None
 
 
 class DifferentiableArrayLoss(nn.Module):

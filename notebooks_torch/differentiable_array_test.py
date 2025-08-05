@@ -244,17 +244,12 @@ class TestDifferentiableArray(unittest.TestCase):
         loss2 = (current_value2 - target_value) ** 2
         loss2.backward()
 
-        # Check if gradient exists (might be None due to computation graph issues)
-        if initial_pos2.grad is not None:
-            query_gradient2 = initial_pos2.grad[0, 0].item()
-            # Since position 3 (value 15) is to the left of 4.5, gradient should be negative
-            self.assertTrue(
-                query_gradient2 < 0,
-                f"Query gradient {query_gradient2} should be negative to move toward position 3",
-            )
-        else:
-            # Skip this part of the test if gradient computation failed
-            self.skipTest("Gradient computation failed for second query position")
+        query_gradient2 = initial_pos2.grad[0, 0].item()
+        # Since position 3 (value 15) is to the left of 4.5, gradient should be negative
+        self.assertTrue(
+            query_gradient2 < 0,
+            f"Query gradient {query_gradient2} should be negative to move toward position 3",
+        )
 
 
 if __name__ == "__main__":
