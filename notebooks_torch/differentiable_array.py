@@ -192,7 +192,7 @@ class DifferentiableArray(nn.Module):
 
     def _get_internal(self, indices):
         """
-        Internal method for getting values at specified indices.
+        Internal method for getting values at specified indices using attention mechanism.
 
         Args:
             indices: torch.Tensor - the indices to lookup
@@ -217,22 +217,55 @@ class DifferentiableArray(nn.Module):
             # All indices are integers - return exact values
             int_indices = torch.round(indices).long()
             return self._values.squeeze(0)[int_indices]
+
+        # Use attention mechanism for higher temperatures (more sophisticated interpolation)
+        if self.temperature > 0.5:
+            # Handle mixed integer/fractional indices properly
+            results = torch.zeros_like(indices, dtype=self._values.dtype)
+            
+            # Handle integer indices exactly even in attention mode
+            integer_mask = torch.abs(indices - torch.round(indices)) < 1e-6
+            if torch.any(integer_mask):
+                int_indices = torch.round(indices[integer_mask]).long()
+                results[integer_mask] = self._values.squeeze(0)[int_indices]
+            
+            # Handle fractional indices with attention mechanism
+            fractional_mask = ~integer_mask
+            if torch.any(fractional_mask):
+                fractional_indices = indices[fractional_mask]
+                batch_size = fractional_indices.shape[0]
+                
+                # Normalize indices to [0, 1] range for the attention mechanism
+                normalized_indices = fractional_indices / max(1, self.array_size - 1)
+                normalized_indices = normalized_indices.unsqueeze(-1)  # Add feature dimension
+                
+                # Expand values for batch processing
+                values_batch = self._values.expand(batch_size, -1)
+                
+                # Use the forward method for attention-based lookup
+                output, _, _ = self.forward(values_batch, normalized_indices)
+                
+                results[fractional_mask] = output.squeeze(-1)
+            
+            return results
         
-        # Check for mixed integer/fractional indices
-        results = torch.zeros_like(indices)
+        # Use linear interpolation for non-gradient cases
+        # Handle mixed integer/fractional indices
+        results = torch.zeros_like(indices, dtype=self._values.dtype)
         
         # Handle integer indices exactly
+        integer_mask = torch.abs(indices - torch.round(indices)) < 1e-6
         if torch.any(integer_mask):
             int_indices = torch.round(indices[integer_mask]).long()
             results[integer_mask] = self._values.squeeze(0)[int_indices]
         
-        # Handle fractional indices with linear interpolation for monotonicity
+        # Handle fractional indices with linear interpolation
         fractional_mask = ~integer_mask
         if torch.any(fractional_mask):
             fractional_indices = indices[fractional_mask]
+            fractional_results = torch.zeros_like(fractional_indices)
             
             # For each fractional index, do linear interpolation between adjacent values
-            fractional_results = torch.zeros_like(fractional_indices)
             for i, idx in enumerate(fractional_indices):
                 # Get floor and ceiling indices
                 floor_idx = torch.floor(idx).long()
@@ -289,6 +322,19 @@ class DifferentiableArray(nn.Module):
 
         # Clamp indices to valid range
         indices = torch.clamp(indices, 0, self.array_size - 1)
+
+        # Check if all indices are integers and if we should use exact assignment
+        # for losslessness (only when temperature is low enough to suggest exact indexing intent)
+        integer_mask = torch.abs(indices - torch.round(indices)) < 1e-6
+        
+        if torch.all(integer_mask) and self.temperature <= 0.5:
+            # Integer indices with low temperature suggest exact assignment intent
+            # This preserves losslessness for other array elements
+            with torch.no_grad():
+                int_indices = torch.round(indices).long()
+                for i, idx in enumerate(int_indices):
+                    self._values[0, idx] = values[i]
+            return
 
         # Normalize indices to [0, 1] range
         normalized_indices = indices / max(1, self.array_size - 1)

@@ -17,8 +17,6 @@ class TestDifferentiableArray(unittest.TestCase):
 
     # python -m unittest differentiable_array_test.TestDifferentiableArray.test_losslessness -v
     def test_losslessness(self):
-        """Test fractional indexing for interpolation."""
-        # Test fractional indices (should be reasonable values)
         for i in range(len(self.test_tensor)):
             self.assertEqual(self.diff_array[i].item(), self.test_tensor[i].item())
 
@@ -40,6 +38,16 @@ class TestDifferentiableArray(unittest.TestCase):
 
         self.assertTrue(val_1_0 < val_1_5 < val_2_0)
         self.assertTrue(val_2_0 < val_2_7 < val_3_0)
+
+    # python -m unittest differentiable_array_test.TestDifferentiableArray.test_setitem_integer_assignment_losslessness -v
+    def test_setitem_integer_assignment_losslessness(self):
+        test_tensor = torch.tensor([1.0, 4.0, 9.0, 16.0, 25.0, 36.0, 49.0])
+        diff_array = DifferentiableArray(test_tensor, embedding_dim=32, temperature=0.5)
+        diff_array[3] = 17.0
+        test_tensor[3] = 17.0
+
+        for i in range(len(test_tensor)):
+            self.assertEqual(diff_array[i].item(), test_tensor[i].item())
 
     # python -m unittest differentiable_array_test.TestDifferentiableArray.test_setitem_fractional_assignment -v
     def test_setitem_fractional_assignment(self):
