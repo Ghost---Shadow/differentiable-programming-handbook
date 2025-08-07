@@ -24,3 +24,4 @@ All algorithms in this repository follow these rules
 * [Stacks](notebooks/stacks.ipynb) - A basic implementation of differentiable stacks
 * [Differentiable Indirection](notebooks/differentiable-indirection.ipynb) - Implementation of circular linked lists with differentiable indexing
 * [Custom gradient](notebooks/custom-gradient.ipynb) - Demonstration of tensorflow custom gradients
+* [Pathfinding](notebooks_torch/pathfinding_dense.ipynb) - Pathfinding in an adjacency matrix with backprop
