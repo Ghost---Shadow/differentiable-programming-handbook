@@ -95,7 +95,10 @@ class DifferentiableArray(nn.Module):
 
         # Only clamp if gradients are not required for indices
         if not indices.requires_grad:
-            indices = torch.max(torch.tensor(0.0), torch.min(indices, torch.tensor(float(self.array_size - 1))))
+            indices = torch.max(
+                torch.tensor(0.0),
+                torch.min(indices, torch.tensor(float(self.array_size - 1))),
+            )
 
         # If gradients are required, always use attention mechanism
         if indices.requires_grad:
@@ -171,7 +174,10 @@ class DifferentiableArray(nn.Module):
 
         # Only clamp if gradients are not required for indices
         if not indices.requires_grad:
-            indices = torch.max(torch.tensor(0.0), torch.min(indices, torch.tensor(float(self.array_size - 1))))
+            indices = torch.max(
+                torch.tensor(0.0),
+                torch.min(indices, torch.tensor(float(self.array_size - 1))),
+            )
 
         # Integer indices with low temperature - exact assignment
         integer_mask = torch.abs(indices - torch.round(indices)) < 1e-6
