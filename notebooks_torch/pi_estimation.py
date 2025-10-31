@@ -239,7 +239,7 @@ if __name__ == "__main__":
     )
     print(f"True value of Pi: {torch.pi:.6f}\n")
 
-    # Estimate pi using Archimedes' approach (96-sided polygon for historical accuracy)
+    # Estimate pi using 96-sided polygon for historical accuracy
     estimated_pi, loss_history = estimate_pi(
         initial_guess=3.0,
         n_rotations=96,
