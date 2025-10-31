@@ -33,6 +33,7 @@ import torch.optim as optim
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+from tqdm import tqdm
 
 
 def compute_sin_cos_from_circle(angle):
@@ -73,7 +74,7 @@ def compute_sin_cos_from_circle(angle):
         y = y + dy
 
         # Normalize to keep on unit circle (enforce x^2 + y^2 = 1)
-        norm = torch.sqrt(x*x + y*y)
+        norm = torch.sqrt(x * x + y * y)
         x = x / norm
         y = y / norm
 
@@ -83,13 +84,18 @@ def compute_sin_cos_from_circle(angle):
 def rotation_matrix(angle):
     """Create a 2D rotation matrix for the given angle using circle geometry."""
     cos_theta, sin_theta = compute_sin_cos_from_circle(angle)
-    return torch.stack([
-        torch.stack([cos_theta, -sin_theta]),
-        torch.stack([sin_theta, cos_theta])
-    ])
+    return torch.stack(
+        [torch.stack([cos_theta, -sin_theta]), torch.stack([sin_theta, cos_theta])]
+    )
 
 
-def estimate_pi(n_rotations=1000, learning_rate=0.01, n_iterations=10000, radius=1.0):
+def estimate_pi(
+    initial_guess=3.0,
+    n_rotations=1000,
+    learning_rate=0.01,
+    n_iterations=10000,
+    radius=1.0,
+):
     """
     Estimate pi by learning it as a parameter through gradient descent.
 
@@ -103,7 +109,7 @@ def estimate_pi(n_rotations=1000, learning_rate=0.01, n_iterations=10000, radius
         Tuple of (estimated pi value, loss history)
     """
     # Initialize pi as a learnable parameter with a reasonable starting guess
-    pi_learned = nn.Parameter(torch.tensor(3.0, dtype=torch.float32))
+    pi_learned = nn.Parameter(torch.tensor(initial_guess, dtype=torch.float32))
 
     # Starting point at (r, 0)
     start_point = torch.tensor([radius, 0.0], dtype=torch.float32)
@@ -115,7 +121,7 @@ def estimate_pi(n_rotations=1000, learning_rate=0.01, n_iterations=10000, radius
     loss_history = []
 
     # Training loop
-    for iteration in range(n_iterations):
+    for iteration in tqdm(range(n_iterations)):
         optimizer.zero_grad()
 
         # Calculate the rotation angle: 2*pi/N
@@ -144,12 +150,14 @@ def estimate_pi(n_rotations=1000, learning_rate=0.01, n_iterations=10000, radius
 
         # Print progress
         if (iteration + 1) % 200 == 0:
-            print(f"Iteration {iteration + 1}/{n_iterations}, Loss: {loss.item():.6f}, Pi estimate: {pi_learned.item():.6f}")
+            print(
+                f"Iteration {iteration + 1}/{n_iterations}, Loss: {loss.item():.6f}, Pi estimate: {pi_learned.item():.6f}"
+            )
 
     return pi_learned.item(), loss_history
 
 
-def plot_loss_curve(loss_history, filename='pi_estimation_loss.png'):
+def plot_loss_curve(loss_history, filename="pi_estimation_loss.png"):
     """Plot and save the loss curve during training."""
     # Save to the same directory as this script
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -157,18 +165,18 @@ def plot_loss_curve(loss_history, filename='pi_estimation_loss.png'):
 
     plt.figure(figsize=(10, 6))
     plt.plot(loss_history, linewidth=2)
-    plt.xlabel('Iteration', fontsize=12)
-    plt.ylabel('Loss (L2 Distance)', fontsize=12)
-    plt.title('Pi Estimation Training Loss Curve', fontsize=14, fontweight='bold')
+    plt.xlabel("Iteration", fontsize=12)
+    plt.ylabel("Loss (L2 Distance)", fontsize=12)
+    plt.title("Pi Estimation Training Loss Curve", fontsize=14, fontweight="bold")
     plt.grid(True, alpha=0.3)
-    plt.yscale('log')
+    plt.yscale("log")
     plt.tight_layout()
-    plt.savefig(filepath, dpi=150, bbox_inches='tight')
+    plt.savefig(filepath, dpi=150, bbox_inches="tight")
     print(f"Loss curve saved to {filepath}")
     plt.close()
 
 
-def plot_circle_with_learned_pi(estimated_pi, filename='pi_estimation_circle.png'):
+def plot_circle_with_learned_pi(estimated_pi, filename="pi_estimation_circle.png"):
     """
     Draw a circle using the learned pi value and the compute_sin_cos_from_circle function.
     This visualizes how well our learned pi approximates a true circle.
@@ -200,17 +208,24 @@ def plot_circle_with_learned_pi(estimated_pi, filename='pi_estimation_circle.png
 
     # Plot both circles
     plt.figure(figsize=(10, 10))
-    plt.plot(x_coords, y_coords, 'b-', linewidth=2, label=f'Learned π = {estimated_pi:.6f}')
-    plt.plot(x_true, y_true, 'r--', linewidth=1.5, alpha=0.7, label=f'True π = {np.pi:.6f}')
-    plt.xlabel('X', fontsize=12)
-    plt.ylabel('Y', fontsize=12)
-    plt.title('Circle Drawn Using Learned Pi\n(No Built-in Sin/Cos Functions)',
-              fontsize=14, fontweight='bold')
-    plt.axis('equal')
+    plt.plot(
+        x_coords, y_coords, "b-", linewidth=2, label=f"Learned π = {estimated_pi:.6f}"
+    )
+    plt.plot(
+        x_true, y_true, "r--", linewidth=1.5, alpha=0.7, label=f"True π = {np.pi:.6f}"
+    )
+    plt.xlabel("X", fontsize=12)
+    plt.ylabel("Y", fontsize=12)
+    plt.title(
+        "Circle Drawn Using Learned Pi\n(No Built-in Sin/Cos Functions)",
+        fontsize=14,
+        fontweight="bold",
+    )
+    plt.axis("equal")
     plt.grid(True, alpha=0.3)
     plt.legend(fontsize=11)
     plt.tight_layout()
-    plt.savefig(filepath, dpi=150, bbox_inches='tight')
+    plt.savefig(filepath, dpi=150, bbox_inches="tight")
     print(f"Circle plot saved to {filepath}")
     plt.close()
 
@@ -219,17 +234,32 @@ if __name__ == "__main__":
     print("=" * 70)
     print("Estimating Pi using Differentiable Programming")
     print("=" * 70)
-    print("Using circle equation x^2 + y^2 = 1 to compute rotations (no built-in sin/cos)")
+    print(
+        "Using circle equation x^2 + y^2 = 1 to compute rotations (no built-in sin/cos)"
+    )
     print(f"True value of Pi: {torch.pi:.6f}\n")
 
-    # Estimate pi (reduced iterations for faster demonstration)
-    estimated_pi, loss_history = estimate_pi(n_rotations=100, learning_rate=0.01, n_iterations=1000)
+    # Estimate pi using Archimedes' approach (96-sided polygon for historical accuracy)
+    estimated_pi, loss_history = estimate_pi(
+        initial_guess=3.0,
+        n_rotations=96,
+        learning_rate=0.001,
+        n_iterations=1000,
+    )
+
+    # Sanity check
+    # estimated_pi, loss_history = estimate_pi(
+    #     initial_guess=torch.pi,
+    #     n_rotations=1000,
+    #     learning_rate=0.0000001,
+    #     n_iterations=1000,
+    # )
 
     print("\n" + "=" * 70)
     print("RESULTS")
     print("=" * 70)
     print(f"Final estimated Pi: {estimated_pi:.6f}")
-    print(f"True Pi:            {torch.pi:.6f}")
+    print(f"True Pi (PyTorch):  {torch.pi:.6f}")
     print(f"Absolute Error:     {abs(estimated_pi - torch.pi):.6f}")
     print(f"Relative Error:     {abs(estimated_pi - torch.pi) / torch.pi * 100:.4f}%")
 
