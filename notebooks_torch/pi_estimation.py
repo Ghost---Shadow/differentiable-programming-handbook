@@ -121,13 +121,16 @@ def estimate_pi(n_rotations=1000, learning_rate=0.01, n_iterations=10000, radius
         # Calculate the rotation angle: 2*pi/N
         angle_per_rotation = 2 * pi_learned / n_rotations
 
-        # Start at the initial point
-        current_point = start_point.clone()
+        # Compute the rotation matrix once
+        rot_matrix = rotation_matrix(angle_per_rotation)
 
-        # Apply N rotations
-        for _ in range(n_rotations):
-            rot_matrix = rotation_matrix(angle_per_rotation)
-            current_point = torch.matmul(rot_matrix, current_point)
+        # Multiply the matrix with itself N-1 times to get the full rotation
+        full_rotation = rot_matrix.clone()
+        for _ in range(n_rotations - 1):
+            full_rotation = torch.matmul(full_rotation, rot_matrix)
+
+        # Apply the full rotation to the starting point
+        current_point = torch.matmul(full_rotation, start_point)
 
         # Calculate L2 loss between final point and starting point
         loss = torch.norm(current_point - start_point)
