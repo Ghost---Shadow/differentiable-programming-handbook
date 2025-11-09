@@ -26,3 +26,4 @@ All algorithms in this repository follow these rules
 * [Custom gradient](notebooks/custom-gradient.ipynb) - Demonstration of tensorflow custom gradients
 * [Pathfinding](notebooks_torch/pathfinding_dense.ipynb) - Pathfinding in an adjacency matrix with backprop
 * [π finding](notebooks_torch/pi_estimation.py) - Estimating the value of pi using backprop
+* [Uranus Giant Impact](notebooks_torch/uranus_before_it_went_sideways.py) - Testing the giant impact hypothesis for Uranus's extreme axial tilt using differentiable physics simulation. Discovers that perfect matches require either co-orbital merger scenarios or sacrificing orbital accuracy.
