@@ -398,6 +398,21 @@ print(
     f"  Tilt error: {abs(predicted_tilt_radians_val - current_tilt_radians_val) / current_tilt_radians_val * 100:.2f}%"
 )
 
+# Mass conservation sanity check
+final_mass_earth_masses = original_uranus_mass_earth_masses + impactor_mass_earth_masses
+current_mass_earth_masses = URANUS_CURRENT_MASS / EARTH_MASS
+mass_error = (
+    abs(final_mass_earth_masses - current_mass_earth_masses)
+    / current_mass_earth_masses
+    * 100
+)
+print(
+    f"  Final mass: {final_mass_earth_masses:.1f} Earth masses (target: {current_mass_earth_masses:.1f})"
+)
+print(
+    f"  Mass error: {mass_error:.2f}% (should be ~0% - mass conserved by construction)"
+)
+
 # Analysis (use radians for comparison)
 if (
     abs(predicted_velocity_val - current_velocity_val) / current_velocity_val < 0.01
@@ -412,10 +427,12 @@ else:
 
 # Special interpretation for low-velocity impacts
 if relative_velocity_km_s < 5.0:
-    print(f"\n" + "="*70)
+    print(f"\n" + "=" * 70)
     print(f"SPECIAL NOTE: Co-Orbital Merger Interpretation")
-    print(f"="*70)
-    print(f"\nThe very low impact velocity ({relative_velocity_km_s:.1f} km/s) suggests this was NOT")
+    print(f"=" * 70)
+    print(
+        f"\nThe very low impact velocity ({relative_velocity_km_s:.1f} km/s) suggests this was NOT"
+    )
     print(f"a random interplanetary collision!")
     print(f"\nInstead, this likely represents a BINARY PLANET MERGER scenario:")
     print(f"\n  • Uranus formed with a SIBLING PLANET in a similar orbit")
@@ -425,13 +442,21 @@ if relative_velocity_km_s < 5.0:
     print(f"  • The planets eventually merged at low relative velocity")
     print(f"  • Uranus 'ate its brother' - absorbing the entire sibling planet")
     print(f"\nWhy this makes physical sense:")
-    print(f"  ✓ Low velocity: Both planets orbiting at ~6800 m/s, relative velocity ~1 km/s")
-    print(f"  ✓ Large impactor: Sibling planet with {impactor_mass_earth_masses:.1f} Earth masses")
+    print(
+        f"  ✓ Low velocity: Both planets orbiting at ~6800 m/s, relative velocity ~1 km/s"
+    )
+    print(
+        f"  ✓ Large impactor: Sibling planet with {impactor_mass_earth_masses:.1f} Earth masses"
+    )
     print(f"  ✓ Complete merger: No debris, all material incorporated into Uranus")
-    print(f"  ✓ Explains perfect match: Co-orbital collision allows fine-tuning of impact")
+    print(
+        f"  ✓ Explains perfect match: Co-orbital collision allows fine-tuning of impact"
+    )
     print(f"\nThis 'twin planet merger' theory has been proposed in recent planetary")
-    print(f"science literature as an alternative to the random giant impact hypothesis!")
-    print(f"="*70)
+    print(
+        f"science literature as an alternative to the random giant impact hypothesis!"
+    )
+    print(f"=" * 70)
 
 
 """
@@ -457,6 +482,34 @@ RESULT ACCURACY:
   Orbit error: 0.00%
   Tilt achieved: 98.0° (target: 98.0°)
   Tilt error: 0.00%
+  Final mass: 14.5 Earth masses (target: 14.5)
+  Mass error: 0.00% (should be ~0% - mass conserved by construction)
 
 ✓ PERFECT MATCH! This scenario fully explains Uranus's current state.
+
+======================================================================
+SPECIAL NOTE: Co-Orbital Merger Interpretation
+======================================================================
+
+The very low impact velocity (1.1 km/s) suggests this was NOT
+a random interplanetary collision!
+
+Instead, this likely represents a BINARY PLANET MERGER scenario:
+
+  • Uranus formed with a SIBLING PLANET in a similar orbit
+  • The two planets were in co-orbital configuration (Trojan, horseshoe,
+    or close binary orbit)
+  • Gravitational perturbations gradually destabilized the system
+  • The planets eventually merged at low relative velocity
+  • Uranus 'ate its brother' - absorbing the entire sibling planet
+
+Why this makes physical sense:
+  ✓ Low velocity: Both planets orbiting at ~6800 m/s, relative velocity ~1 km/s
+  ✓ Large impactor: Sibling planet with 5.0 Earth masses
+  ✓ Complete merger: No debris, all material incorporated into Uranus
+  ✓ Explains perfect match: Co-orbital collision allows fine-tuning of impact
+
+This 'twin planet merger' theory has been proposed in recent planetary
+science literature as an alternative to the random giant impact hypothesis!
+======================================================================
 """
