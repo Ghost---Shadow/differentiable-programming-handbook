@@ -3,19 +3,19 @@ import torch
 import torch.nn as nn
 
 # Physical constants
-SUN_MASS = 1.9884e30  # kg (nominal solar mass)
 GRAVITATIONAL_CONSTANT = 6.6743e-11  # m^3 kg^-1 s^-2 (CODATA 2018)
 ASTRONOMICAL_UNIT = 1.495978707e11  # m (exact as of IAU 2012)
 EARTH_MASS = 5.9722e24  # kg (NASA Earth Fact Sheet)
 URANUS_RADIUS = 2.5559e7  # m (equatorial radius at 1 bar)
 SPHERE_MOMENT_INERTIA_COEFFICIENT = 2 / 5
 
-# Current Uranus observations
+# Current observations
+SUN_MASS_CURRENT = 1.9884e30  # kg (current nominal solar mass)
 URANUS_CURRENT_MASS = 8.68e25  # kg (NASA Uranus Fact Sheet)
 URANUS_CURRENT_SEMI_MAJOR_AXIS = 19.19126393 * ASTRONOMICAL_UNIT  # m (NASA)
 URANUS_CURRENT_ORBITAL_VELOCITY = torch.sqrt(
     torch.tensor(
-        GRAVITATIONAL_CONSTANT * SUN_MASS / URANUS_CURRENT_SEMI_MAJOR_AXIS,
+        GRAVITATIONAL_CONSTANT * SUN_MASS_CURRENT / URANUS_CURRENT_SEMI_MAJOR_AXIS,
         dtype=torch.float64
     )
 )  # m/s
@@ -34,6 +34,9 @@ class UranusImpactModel(nn.Module):
         self.impact_angle_degrees = nn.Parameter(torch.tensor(45.0, dtype=torch.float64))
         self.original_semi_major_axis_au = nn.Parameter(torch.tensor(19.0, dtype=torch.float64))
         self.original_rotation_period_hours = nn.Parameter(torch.tensor(12.0, dtype=torch.float64))
+        # Sun's mass at time of impact (in units of current solar mass)
+        # Initialize to 1.0 (same as now), let optimizer find if it was different
+        self.original_sun_mass_solar_units = nn.Parameter(torch.tensor(1.0, dtype=torch.float64))
 
     def forward(self):
         """Forward pass computing final orbital velocity and tilt"""
@@ -44,10 +47,11 @@ class UranusImpactModel(nn.Module):
         impact_angle_radians = torch.deg2rad(self.impact_angle_degrees)
         original_semi_major_axis = self.original_semi_major_axis_au * ASTRONOMICAL_UNIT  # m
         original_rotation_period = self.original_rotation_period_hours * 3600  # seconds
+        original_sun_mass = self.original_sun_mass_solar_units * SUN_MASS_CURRENT  # kg
 
-        # Calculate original orbital velocity before impact
+        # Calculate original orbital velocity before impact (using original sun mass)
         original_orbital_velocity = torch.sqrt(
-            GRAVITATIONAL_CONSTANT * SUN_MASS / original_semi_major_axis
+            GRAVITATIONAL_CONSTANT * original_sun_mass / original_semi_major_axis
         )
 
         # Decompose impact velocity into tangential and radial components
@@ -184,6 +188,7 @@ with torch.no_grad():
     impact_angle_deg = model.impact_angle_degrees.item()
     original_orbit_au = model.original_semi_major_axis_au.item()
     rotation_period_hours = model.original_rotation_period_hours.item()
+    original_sun_mass_ratio = model.original_sun_mass_solar_units.item()
 
     original_uranus_mass_earth_masses = (
         URANUS_CURRENT_MASS - impactor_mass_earth_masses * EARTH_MASS
@@ -196,6 +201,9 @@ with torch.no_grad():
     current_tilt_val = URANUS_CURRENT_TILT.item()
 
 print(f"\n=== OPTIMIZED SCENARIO ===")
+print(f"\nPRE-IMPACT CONDITIONS:")
+print(f"  Sun's mass: {original_sun_mass_ratio:.6f} × current solar mass")
+print(f"    (Sun was {(original_sun_mass_ratio - 1) * 100:+.4f}% different)")
 print(f"\nPRE-IMPACT URANUS:")
 print(f"  Orbital distance: {original_orbit_au:.2f} AU (current: 19.19 AU)")
 print(f"  Rotation period: {rotation_period_hours:.1f} hours (current: 17.2 hours)")
